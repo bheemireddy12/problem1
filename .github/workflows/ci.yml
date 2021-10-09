@@ -1,0 +1,46 @@
+name: run_tests
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '!*' # Do not execute on tags
+    paths:
+      - '*'
+      - '!*.MD'
+  pull_request:
+    paths:
+      - '!*.MD'
+jobs:
+  test:
+    strategy:
+      matrix:
+        platform: [ ubuntu-latest ]
+        node: [ '12', '10' ]
+    name: test/node ${{ matrix.node }}/${{ matrix.platform }}
+    runs-on: ${{ matrix.platform }}
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-node@master
+      with:
+        node-version: ${{ matrix.node }}
+    - run: npm install
+    - run: npm run build
+    - run: npm run test
+  coverage:
+    needs: [ test ]
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-node@master
+      with:
+        node-version: '12'
+    - run: npm install
+    - run: npm build
+    - run: npm run coverage
+    - name: Code Climate Test Reporter
+      uses: aktions/codeclimate-test-reporter@v1
+      with:
+        codeclimate-test-reporter-id: ${{ secrets.CC_TEST_REPORTER_ID }}
+        command: after-build
